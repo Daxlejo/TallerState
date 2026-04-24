@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Panel de control del Dron de Fotogrametría Agrícola - Simulador de patrón State">
+    <title>🚁 Dron de Fotogrametría Agrícola</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --bg-card-hover: #1f2a40;
+            --border: #2a3550;
+            --text-primary: #e8ecf4;
+            --text-secondary: #8899b4;
+            --text-muted: #5a6a85;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --glow-blue: rgba(59, 130, 246, 0.3);
+            --glow-green: rgba(16, 185, 129, 0.3);
+            --glow-red: rgba(239, 68, 68, 0.3);
+            --glow-yellow: rgba(245, 158, 11, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Background Effects ── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Header ── */
+        .header {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem 1rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.3rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        /* ── Main Layout ── */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 1.2rem;
+        }
+
+        /* ── Card Base ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            display: inline-block;
+        }
+
+        /* ── State Display Card ── */
+        .state-card {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .state-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 2px;
+            border-radius: 1px;
+            transition: background 0.5s ease;
+        }
+
+        .drone-emoji {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .drone-emoji.grounded {
+            animation: none;
+        }
+
+        .drone-emoji.emergency {
+            animation: shake 0.4s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0) rotate(0);
+            }
+
+            25% {
+                transform: translateX(-5px) rotate(-3deg);
+            }
+
+            75% {
+                transform: translateX(5px) rotate(3deg);
+            }
+        }
+
+        .state-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            transition: color 0.3s ease;
+        }
+
+        .state-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        /* State-specific colors */
+        .state-ground .state-name {
+            color: var(--accent-green);
+        }
+
+        .state-ground .card-title::before {
+            background: var(--accent-green);
+        }
+
+        .state-ground::after {
+            background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+        }
+
+        .state-takeoff .state-name {
+            color: var(--accent-blue);
+        }
+
+        .state-takeoff .card-title::before {
+            background: var(--accent-blue);
+        }
+
+        .state-takeoff::after {
+            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+        }
+
+        .state-mapping .state-name {
+            color: var(--accent-cyan);
+        }
+
+        .state-mapping .card-title::before {
+            background: var(--accent-cyan);
+        }
+
+        .state-mapping::after {
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+        }
+
+        .state-return .state-name {
+            color: var(--accent-yellow);
+        }
+
+        .state-return .card-title::before {
+            background: var(--accent-yellow);
+        }
+
+        .state-return::after {
+            background: linear-gradient(90deg, transparent, var(--accent-yellow), transparent);
+        }
+
+        .state-emergency .state-name {
+            color: var(--accent-red);
+        }
+
+        .state-emergency .card-title::before {
+            background: var(--accent-red);
+        }
+
+        .state-emergency::after {
+            background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
+        }
+
+        /* ── Dashboard Metrics ── */
+        .metrics-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .metric-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .metric-icon.battery {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .metric-icon.battery.low {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .metric-icon.camera {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .metric-icon.photos {
+            background: rgba(139, 92, 246, 0.15);
+        }
+
+        .metric-icon.motors {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .metric-info {
+            flex: 1;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* ── Battery Bar ── */
+        .battery-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            margin-top: 0.4rem;
+            overflow: hidden;
+        }
+
+        .battery-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease, background 0.5s ease;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+        }
+
+        .battery-bar.low {
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow));
+        }
+
+        /* ── Controls Card ── */
+        .controls-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            border-radius: 12px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            border-color: var(--accent-blue);
+        }
+
+        .btn:hover:not(:disabled)::before {
+            opacity: 1;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
+        .btn-icon {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        /* Button variants */
+        .btn-takeoff {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-takeoff::before {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent);
+        }
+
+        .btn-takeoff:hover:not(:disabled) {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 20px var(--glow-green);
+        }
+
+        .btn-mapping {
+            border-color: rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-mapping::before {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), transparent);
+        }
+
+        .btn-mapping:hover:not(:disabled) {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-photo {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-photo::before {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), transparent);
+        }
+
+        .btn-photo:hover:not(:disabled) {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-land {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-land::before {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent);
+        }
+
+        .btn-land:hover:not(:disabled) {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px var(--glow-blue);
+        }
+
+        .btn-motor {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-motor::before {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent);
+        }
+
+        .btn-motor:hover:not(:disabled) {
+            border-color: var(--accent-red);
+            box-shadow: 0 0 20px var(--glow-red);
+        }
+
+        .btn-reset {
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-reset::before {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent);
+        }
+
+        .btn-reset:hover:not(:disabled) {
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 20px var(--glow-yellow);
+        }
+
+        /* ── Log Card ── */
+        .log-card {
+            grid-column: 1 / -1;
+        }
+
+        .log-container {
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .log-entry {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            font-family: 'Inter', monospace;
+            color: var(--text-secondary);
+            border-left: 2px solid var(--border);
+            margin-bottom: 0.35rem;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-entry:last-child {
+            border-left-color: var(--accent-cyan);
+            color: var(--text-primary);
+        }
+
+        .log-empty {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* ── State Flow Diagram ── */
+        .flow-card {
+            grid-column: 1 / -1;
+        }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            padding: 0.5rem 0;
+        }
+
+        .flow-node {
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            transition: all 0.4s ease;
+        }
+
+        .flow-node.active {
+            color: white;
+            border-color: transparent;
+            transform: scale(1.08);
+        }
+
+        .flow-node.active.n-ground {
+            background: var(--accent-green);
+            box-shadow: 0 0 15px var(--glow-green);
+        }
+
+        .flow-node.active.n-takeoff {
+            background: var(--accent-blue);
+            box-shadow: 0 0 15px var(--glow-blue);
+        }
+
+        .flow-node.active.n-mapping {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .flow-node.active.n-return {
+            background: var(--accent-yellow);
+            box-shadow: 0 0 15px var(--glow-yellow);
+        }
+
+        .flow-node.active.n-emergency {
+            background: var(--accent-red);
+            box-shadow: 0 0 15px var(--glow-red);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+
+            .state-card,
+            .log-card,
+            .flow-card {
+                grid-column: 1;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* ── Flash animation for state changes ── */
+        .flash {
+            animation: flashBg 0.6s ease;
+        }
+
+        @keyframes flashBg {
+            0% {
+                background: rgba(59, 130, 246, 0.15);
+            }
+
+            100% {
+                background: var(--bg-card);
+            }
+        }
+
+        /* ── Status indicator pulse ── */
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.4rem;
+            vertical-align: middle;
+        }
+
+        .status-dot.online {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--glow-green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <h1>🚁 Dron de Fotogrametría Agrícola</h1>
+    </header>
+
+    <main class="main-container">
+
+        <!-- State Flow Diagram -->
+        <section class="card flow-card">
+            <div class="card-title">Diagrama de Estados</div>
+            <div class="flow-diagram">
+                <span class="flow-node n-ground" id="flow-ground">🏠 En Tierra</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node n-takeoff" id="flow-takeoff">🚀 Despegue</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node n-mapping" id="flow-mapping">🗺️ Mapeo</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node n-return" id="flow-return">🔋 Retorno</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node n-ground" id="flow-ground2">🏠 En Tierra</span>
+                <span class="flow-arrow" style="margin-left: 1rem;">⚠️</span>
+                <span class="flow-node n-emergency" id="flow-emergency">🚨 Emergencia</span>
+            </div>
+        </section>
+
+        <!-- Current State Display -->
+        <section class="card state-card state-ground" id="state-card">
+            <div class="card-title">Estado Actual</div>
+            <span class="drone-emoji grounded" id="drone-emoji">🛩️</span>
+            <div class="state-name" id="state-name">En Tierra</div>
+            <div class="state-description" id="state-desc">El dron está en tierra, listo para despegar.</div>
+        </section>
+
+        <!-- Metrics -->
+        <section class="card metrics-card">
+            <div class="card-title">Telemetría</div>
+
+            <div class="metric">
+                <div class="metric-icon battery" id="battery-icon">🔋</div>
+                <div class="metric-info">
+                    <div class="metric-label">Batería</div>
+                    <div class="metric-value" id="battery-value">100%</div>
+                    <div class="battery-bar-container">
+                        <div class="battery-bar" id="battery-bar" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-icon camera">📷</div>
+                <div class="metric-info">
+                    <div class="metric-label">Cámara</div>
+                    <div class="metric-value" id="camera-value">Inactiva</div>
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-icon photos">📸</div>
+                <div class="metric-info">
+                    <div class="metric-label">Fotos Tomadas</div>
+                    <div class="metric-value" id="photos-value">0</div>
+                </div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-icon motors">⚙️</div>
+                <div class="metric-info">
+                    <div class="metric-label">Motores</div>
+                    <div class="metric-value" id="motors-value">Apagados</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <section class="card controls-card">
+            <div class="card-title">Controles</div>
+
+            <button class="btn btn-takeoff" id="btn-takeoff" onclick="sendAction('takeOff')">
+                <span class="btn-icon">🚀</span> Despegar
+            </button>
+            <button class="btn btn-mapping" id="btn-startMapping" onclick="sendAction('startMapping')">
+                <span class="btn-icon">🗺️</span> Iniciar Mapeo
+            </button>
+            <button class="btn btn-photo" id="btn-takePhoto" onclick="sendAction('takePhoto')">
+                <span class="btn-icon">📸</span> Tomar Foto
+            </button>
+            <button class="btn btn-land" id="btn-return" onclick="sendAction('returnToBase')">
+                <span class="btn-icon">🏠</span> Regresar a Base
+            </button>
+            <button class="btn btn-motor" id="btn-motorFailure" onclick="sendAction('motorFailure')">
+                <span class="btn-icon">⚠️</span> Simular Fallo de Motor
+            </button>
+            <button class="btn btn-reset" id="btn-reset" onclick="sendAction('reset')">
+                <span class="btn-icon">🔧</span> Resetear Dron
+            </button>
+        </section>
+
+        <!-- Event Log -->
+        <section class="card log-card">
+            <div class="card-title">Registro de Eventos</div>
+            <div class="log-container" id="log-container">
+                <div class="log-empty">Esperando eventos del dron...</div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const API_BASE = '';
+
+        const STATE_CONFIG = {
+            'En Tierra': {
+                css: 'state-ground',
+                emoji: '🛩️',
+                emojiClass: 'grounded',
+                description: 'El dron está en tierra, listo para despegar.'
+            },
+            'Despegue': {
+                css: 'state-takeoff',
+                emoji: '🚀',
+                emojiClass: '',
+                description: 'El dron ha despegado y está en posición.'
+            },
+            'Mapeo': {
+                css: 'state-mapping',
+                emoji: '📡',
+                emojiClass: '',
+                description: 'Realizando mapeo topográfico del cultivo.'
+            },
+            'Retorno por Batería': {
+                css: 'state-return',
+                emoji: '🔋',
+                emojiClass: '',
+                description: 'Batería crítica. Regresando por la ruta tomada'
+            },
+            'Retorno Manual': {
+                css: 'state-return',
+                emoji: '🏠',
+                emojiClass: '',
+                description: 'Regresando a base por comando manual'
+            },
+            'Aterrizaje de Emergencia': {
+                css: 'state-emergency',
+                emoji: '🚨',
+                emojiClass: 'emergency',
+                description: '¡Aterrizaje de emergencia! Fallo de motor detectado.'
+            }
+        };
+
+        const FLOW_MAP = {
+            'En Tierra': 'flow-ground',
+            'Despegue': 'flow-takeoff',
+            'Mapeo': 'flow-mapping',
+            'Retorno por Batería': 'flow-return',
+            'Retorno Manual': 'flow-return',
+            'Aterrizaje de Emergencia': 'flow-emergency'
+        };
+
+        // ── API Communication ──
+
+        async function sendAction(action) {
+            try {
+                const response = await fetch(API_BASE + '/api/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: action })
+                });
+                const data = await response.json();
+                updateUI(data);
+            } catch (err) {
+                console.error('Error al enviar acción:', err);
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch(API_BASE + '/api/status');
+                const data = await response.json();
+                updateUI(data);
+            } catch (err) {
+                console.error('Error al obtener estado:', err);
+            }
+        }
+
+        // ── UI Update ──
+
+        function updateUI(data) {
+            updateState(data.state);
+            updateMetrics(data);
+            updateButtons(data.actions);
+            updateLog(data.log);
+            updateFlowDiagram(data.state);
+        }
+
+        function updateState(stateName) {
+            const config = STATE_CONFIG[stateName];
+            if (!config) return;
+
+            const stateCard = document.getElementById('state-card');
+            const droneEmoji = document.getElementById('drone-emoji');
+            const stateNameEl = document.getElementById('state-name');
+            const stateDesc = document.getElementById('state-desc');
+
+            // Remove old state classes
+            stateCard.className = 'card state-card ' + config.css;
+            stateCard.classList.add('flash');
+            setTimeout(() => stateCard.classList.remove('flash'), 600);
+
+            droneEmoji.textContent = config.emoji;
+            droneEmoji.className = 'drone-emoji ' + config.emojiClass;
+            stateNameEl.textContent = stateName;
+            stateDesc.textContent = config.description;
+        }
+
+        function updateMetrics(data) {
+            // Battery
+            const batteryValue = document.getElementById('battery-value');
+            const batteryBar = document.getElementById('battery-bar');
+            const batteryIcon = document.getElementById('battery-icon');
+
+            batteryValue.textContent = data.battery + '%';
+            batteryBar.style.width = data.battery + '%';
+
+            if (data.batteryLow) {
+                batteryBar.classList.add('low');
+                batteryIcon.classList.add('low');
+            } else {
+                batteryBar.classList.remove('low');
+                batteryIcon.classList.remove('low');
+            }
+
+            // Camera
+            const cameraValue = document.getElementById('camera-value');
+            cameraValue.textContent = data.cameraActive ? '🟢 Activa' : '🔴 Inactiva';
+
+            // Photos
+            document.getElementById('photos-value').textContent = data.photosTaken;
+
+            // Motors
+            const motorsValue = document.getElementById('motors-value');
+            motorsValue.textContent = data.motorsActive ? '🟢 Encendidos' : '🔴 Apagados';
+        }
+
+        function updateButtons(actions) {
+            document.getElementById('btn-takeoff').disabled = !actions.takeOff;
+            document.getElementById('btn-startMapping').disabled = !actions.startMapping;
+            document.getElementById('btn-takePhoto').disabled = !actions.takePhoto;
+            document.getElementById('btn-return').disabled = !actions.returnToBase;
+            document.getElementById('btn-motorFailure').disabled = !actions.motorFailure;
+            document.getElementById('btn-reset').disabled = !actions.reset;
+        }
+
+        function updateLog(entries) {
+            const logContainer = document.getElementById('log-container');
+
+            if (!entries || entries.length === 0) {
+                logContainer.innerHTML = '<div class="log-empty">Esperando eventos del dron...</div>';
+                return;
+            }
+
+            logContainer.innerHTML = entries.map(entry =>
+                '<div class="log-entry">' + escapeHtml(entry) + '</div>'
+            ).join('');
+
+            // Auto-scroll to bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateFlowDiagram(stateName) {
+            // Remove all active classes
+            document.querySelectorAll('.flow-node').forEach(node => {
+                node.classList.remove('active');
+            });
+
+            // Set active node
+            const activeId = FLOW_MAP[stateName];
+            if (activeId) {
+                // Handle duplicate ground nodes
+                if (stateName === 'En Tierra') {
+                    document.getElementById('flow-ground').classList.add('active');
+                    document.getElementById('flow-ground2').classList.add('active');
+                } else {
+                    const node = document.getElementById(activeId);
+                    if (node) node.classList.add('active');
+                }
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ── Auto-polling for real-time battery updates ──
+
+        let pollingInterval = null;
+
+        function startPolling() {
+            if (!pollingInterval) {
+                pollingInterval = setInterval(fetchStatus, 2000); // Poll every 2 seconds
+            }
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        // Start/stop polling based on drone state
+        function checkPolling(stateName) {
+            if (stateName === 'En Tierra') {
+                stopPolling();
+            } else {
+                startPolling();
+            }
+        }
+
+        // Override updateUI to also manage polling
+        const originalUpdateUI = updateUI;
+        updateUI = function (data) {
+            originalUpdateUI(data);
+            checkPolling(data.state);
+        };
+
+        // ── Initial Load ──
+        fetchStatus();
+    </script>
+</body>
+
+</html>
